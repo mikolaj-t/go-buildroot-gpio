@@ -28,7 +28,7 @@ func main() {
 	n.High()
 
 	s := rpio.Pin(SouthRed)
-	s.High()
+	//s.High()
 
 	w := rpio.Pin(WestYellow)
 	w.High()
@@ -42,9 +42,7 @@ func main() {
 	button := rpio.Pin(Button)
 	button.Input()
 
-	buzzer := rpio.Pin(Buzzer)
-
 	for {
-		buzzer.Write(button.Read())
+		s.Write(button.Read())
 	}
 }
