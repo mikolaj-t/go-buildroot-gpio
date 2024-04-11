@@ -1,7 +1,6 @@
 package main
 
 const (
-	Buzzer = 18
 	Button = 4
 
 	NorthRed    = 5

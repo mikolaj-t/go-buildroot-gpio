@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/stianeikeland/go-rpio/v4"
+	"github.com/warthog618/gpio"
 )
 
 func main() {
@@ -15,34 +15,37 @@ func main() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
-		rpio.Close()
 		os.Exit(0)
 	}()
 
-	err := rpio.Open()
+	err := gpio.Open()
 	if err != nil {
 		panic(err)
 	}
 
-	n := rpio.Pin(NorthGreen)
+	n := gpio.NewPin(NorthGreen)
 	n.High()
 
-	s := rpio.Pin(SouthRed)
-	//s.High()
+	s := gpio.NewPin(SouthRed)
+	s.High()
 
-	w := rpio.Pin(WestYellow)
+	w := gpio.NewPin(WestYellow)
 	w.High()
 
-	e := rpio.Pin(EastRed)
+	e := gpio.NewPin(EastRed)
 	e.High()
 
-	ee := rpio.Pin(EastGreen)
+	ee := gpio.NewPin(EastGreen)
 	ee.High()
 
-	button := rpio.Pin(Button)
+	button := gpio.NewPin(Button)
 	button.Input()
 
-	for {
-		s.Write(button.Read())
-	}
+	button.Watch(gpio.EdgeRising, func(p *gpio.Pin) {
+		n.Low()
+		s.High()
+		w.Low()
+		e.High()
+		ee.Low()
+	})
 }
