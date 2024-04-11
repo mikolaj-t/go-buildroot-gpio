@@ -58,14 +58,15 @@ func main() {
 	}
 	defer gpio.Close()
 
-	stop := make(chan struct{})
+	stopAutomatic := make(chan struct{})
+	stopButton := make(chan struct{})
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		//os.Exit(0)
-		stop <- struct{}{}
+		stopAutomatic <- struct{}{}
+		stopButton <- struct{}{}
 	}()
 
 	north := [3]*gpio.Pin{
@@ -98,39 +99,55 @@ func main() {
 	button := gpio.NewPin(Button)
 	button.Input()
 
+	stableState := make(chan bool)
+	unbouncer := NewUnbouncer(stableState, 100*time.Millisecond)
+
 	button.Watch(gpio.EdgeBoth, func(p *gpio.Pin) {
-		// Toggle all the lights
 		fmt.Println("Button pressed!", button.Read())
-
-		if button.Read() == gpio.High {
-			return
-		}
-
-		north[Green].Toggle()
-		north[Yellow].Toggle()
-		north[Red].Toggle()
-
-		south[Green].Toggle()
-		south[Yellow].Toggle()
-		south[Red].Toggle()
-
-		east[Green].Toggle()
-		east[Yellow].Toggle()
-		east[Red].Toggle()
-
-		west[Green].Toggle()
-		west[Yellow].Toggle()
-		west[Red].Toggle()
+		unbouncer.OnClicked(bool(button.Read()))
 	})
 
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
+	wg.Add(2)
+
 	go func() {
-	L:
+		defer wg.Done()
 		for {
 			select {
-			case <-stop:
-				break L
+			case <-stopButton:
+				return
+			case state := <-stableState:
+				if !state {
+					// Toggle all the lights
+					fmt.Println("Button pressed stable!", state)
+
+					north[Green].Toggle()
+					north[Yellow].Toggle()
+					north[Red].Toggle()
+
+					south[Green].Toggle()
+					south[Yellow].Toggle()
+					south[Red].Toggle()
+
+					east[Green].Toggle()
+					east[Yellow].Toggle()
+					east[Red].Toggle()
+
+					west[Green].Toggle()
+					west[Yellow].Toggle()
+					west[Red].Toggle()
+				}
+			}
+
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-stopAutomatic:
+				return
 			default:
 				// North-South green, East-West red
 				north[Yellow].Low()
@@ -186,7 +203,6 @@ func main() {
 				time.Sleep(2 * time.Second)
 			}
 		}
-		wg.Done()
 	}()
 	wg.Wait()
 	fmt.Println("Goodbye!")
