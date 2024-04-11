@@ -69,25 +69,25 @@ func main() {
 		stopButton <- struct{}{}
 	}()
 
-	north := [3]*gpio.Pin{
-		gpio.NewPin(NorthGreen),
-		gpio.NewPin(NorthYellow),
-		gpio.NewPin(NorthRed),
+	north := TrafficLight{
+		Green:  gpio.NewPin(NorthGreen),
+		Yellow: gpio.NewPin(NorthYellow),
+		Red:    gpio.NewPin(NorthRed),
 	}
-	south := [3]*gpio.Pin{
-		gpio.NewPin(SouthGreen),
-		gpio.NewPin(SouthYellow),
-		gpio.NewPin(SouthRed),
+	south := TrafficLight{
+		Green:  gpio.NewPin(SouthGreen),
+		Yellow: gpio.NewPin(SouthYellow),
+		Red:    gpio.NewPin(SouthRed),
 	}
-	east := [3]*gpio.Pin{
-		gpio.NewPin(EastGreen),
-		gpio.NewPin(EastYellow),
-		gpio.NewPin(EastRed),
+	east := TrafficLight{
+		Green:  gpio.NewPin(EastGreen),
+		Yellow: gpio.NewPin(EastYellow),
+		Red:    gpio.NewPin(EastRed),
 	}
-	west := [3]*gpio.Pin{
-		gpio.NewPin(WestGreen),
-		gpio.NewPin(WestYellow),
-		gpio.NewPin(WestRed),
+	west := TrafficLight{
+		Green:  gpio.NewPin(WestGreen),
+		Yellow: gpio.NewPin(WestYellow),
+		Red:    gpio.NewPin(WestRed),
 	}
 
 	const (
@@ -120,22 +120,10 @@ func main() {
 				if !state {
 					// Toggle all the lights
 					fmt.Println("Button pressed stable!", state)
-
-					north[Green].Toggle()
-					north[Yellow].Toggle()
-					north[Red].Toggle()
-
-					south[Green].Toggle()
-					south[Yellow].Toggle()
-					south[Red].Toggle()
-
-					east[Green].Toggle()
-					east[Yellow].Toggle()
-					east[Red].Toggle()
-
-					west[Green].Toggle()
-					west[Yellow].Toggle()
-					west[Red].Toggle()
+					north.ChangeState(Yellow)
+					south.ChangeState(Yellow)
+					east.ChangeState(Yellow)
+					west.ChangeState(Yellow)
 				}
 			}
 
@@ -150,55 +138,34 @@ func main() {
 				return
 			default:
 				// North-South green, East-West red
-				north[Yellow].Low()
-				south[Yellow].Low()
-				west[Yellow].Low()
-				east[Yellow].Low()
-				north[Red].Low()
-				south[Red].Low()
+				north.ChangeState(Green)
+				south.ChangeState(Green)
+				east.ChangeState(Red)
+				west.ChangeState(Red)
 
-				north[Green].High()
-				south[Green].High()
-
-				east[Red].High()
-				west[Red].High()
 				time.Sleep(5 * time.Second)
 
 				// Transition to East-West green
-				north[Yellow].High()
-				south[Yellow].High()
-				west[Yellow].High()
-				east[Yellow].High()
-
-				north[Green].Low()
-				south[Green].Low()
+				north.ChangeState(Yellow)
+				south.ChangeState(Yellow)
+				east.ChangeState(Yellow)
+				west.ChangeState(Yellow)
 
 				time.Sleep(2 * time.Second)
 
 				// North-South red, East-West green
-				north[Yellow].Low()
-				south[Yellow].Low()
-				north[Red].High()
-				south[Red].High()
-
-				west[Red].Low()
-				east[Red].Low()
-				west[Yellow].Low()
-				east[Yellow].Low()
-
-				west[Green].High()
-				east[Green].High()
+				north.ChangeState(Red)
+				south.ChangeState(Red)
+				east.ChangeState(Green)
+				west.ChangeState(Green)
 
 				time.Sleep(5 * time.Second)
 
 				// Transition to North-South green
-				north[Yellow].High()
-				south[Yellow].High()
-				west[Yellow].High()
-				east[Yellow].High()
-
-				west[Green].Low()
-				east[Green].Low()
+				north.ChangeState(Yellow)
+				south.ChangeState(Yellow)
+				east.ChangeState(Yellow)
+				west.ChangeState(Yellow)
 
 				time.Sleep(2 * time.Second)
 			}

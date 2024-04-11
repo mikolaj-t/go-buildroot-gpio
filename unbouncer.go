@@ -25,15 +25,15 @@ func (u *Unbouncer) OnClicked(state bool) {
 		u.setState(state)
 	} else if state != *u.lastState {
 		fmt.Printf("Button pressed new state! %t -> %t\n", *u.lastState, state)
-		if u.timer != nil {
-			u.timer.Stop()
-		}
 		u.setState(state)
 	}
 }
 
 func (u *Unbouncer) setState(state bool) {
 	u.lastState = &state
+	if u.timer != nil {
+		u.timer.Stop()
+	}
 	u.timer = time.AfterFunc(u.tbmax, func() {
 		u.stableOutput <- state
 		u.lastState = nil
