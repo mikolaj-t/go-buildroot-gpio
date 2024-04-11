@@ -98,9 +98,9 @@ func main() {
 	button := gpio.NewPin(Button)
 	button.Input()
 
-	button.Watch(gpio.EdgeRising, func(p *gpio.Pin) {
+	button.Watch(gpio.EdgeFalling, func(p *gpio.Pin) {
 		// Toggle all the lights
-
+		fmt.Println("Button pressed!")
 		north[Green].Toggle()
 		north[Yellow].Toggle()
 		north[Red].Toggle()
