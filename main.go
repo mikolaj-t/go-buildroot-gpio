@@ -14,14 +14,14 @@ import (
 func setupGPIO(pins ...int) error {
 	for _, pin := range pins {
 		// Export the GPIO pin
-		cmd := exec.Command("bash", "-c", fmt.Sprintf("echo %d > /sys/class/gpio/export", pin))
+		cmd := exec.Command("sh", "-c", fmt.Sprintf("echo %d > /sys/class/gpio/export", pin))
 		err := cmd.Run()
 		if err != nil {
 			return fmt.Errorf("failed to export GPIO pin %d: %w", pin, err)
 		}
 
 		// Set the GPIO pin direction to low
-		cmd = exec.Command("bash", "-c", fmt.Sprintf("echo low > /sys/class/gpio/gpio%d/direction", pin))
+		cmd = exec.Command("sh", "-c", fmt.Sprintf("echo low > /sys/class/gpio/gpio%d/direction", pin))
 		err = cmd.Run()
 		if err != nil {
 			return fmt.Errorf("failed to set GPIO pin %d direction to low: %w", pin, err)
