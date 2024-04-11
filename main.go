@@ -31,11 +31,25 @@ func setupGPIO(pins ...int) error {
 	return nil
 }
 
+func cleanupGPIO(pins ...int) error {
+	for _, pin := range pins {
+		// Unexport the GPIO pin
+		cmd := exec.Command("sh", "-c", fmt.Sprintf("echo %d > /sys/class/gpio/unexport", pin))
+		err := cmd.Run()
+		if err != nil {
+			return fmt.Errorf("failed to unexport GPIO pin %d: %w", pin, err)
+		}
+	}
+
+	return nil
+}
+
 func main() {
 	err := setupGPIO(NorthGreen, NorthYellow, NorthRed, SouthGreen, SouthYellow, SouthRed, EastGreen, EastYellow, EastRed, WestGreen, WestYellow, WestRed, Button)
 	if err != nil {
 		panic(err)
 	}
+	defer cleanupGPIO(NorthGreen, NorthYellow, NorthRed, SouthGreen, SouthYellow, SouthRed, EastGreen, EastYellow, EastRed, WestGreen, WestYellow, WestRed, Button)
 
 	err = gpio.Open()
 	if err != nil {
@@ -81,22 +95,30 @@ func main() {
 	button.Input()
 
 	button.Watch(gpio.EdgeRising, func(p *gpio.Pin) {
-		// Simulate pedestrian crossing
-		north[Yellow].High()
-		south[Yellow].High()
-		time.Sleep(2 * time.Second)
-		north[Green].Low()
-		south[Green].Low()
-		north[Red].High()
-		south[Red].High()
-		east[Green].High()
-		west[Green].High()
+		// Toggle all the lights
+
+		north[Green].Toggle()
+		north[Yellow].Toggle()
+		north[Red].Toggle()
+
+		south[Green].Toggle()
+		south[Yellow].Toggle()
+		south[Red].Toggle()
+
+		east[Green].Toggle()
+		east[Yellow].Toggle()
+		east[Red].Toggle()
+
+		west[Green].Toggle()
+		west[Yellow].Toggle()
+		west[Red].Toggle()
 	})
 
 	for {
 		// North-South green, East-West red
 		north[Green].High()
 		south[Green].High()
+
 		east[Red].High()
 		west[Red].High()
 		time.Sleep(5 * time.Second)
@@ -104,22 +126,43 @@ func main() {
 		// Transition to East-West green
 		north[Yellow].High()
 		south[Yellow].High()
-		time.Sleep(2 * time.Second)
+		west[Yellow].High()
+		east[Yellow].High()
+
 		north[Green].Low()
 		south[Green].Low()
+
+		time.Sleep(2 * time.Second)
+
+		// North-South red, East-West green
+		north[Yellow].Low()
+		south[Yellow].Low()
 		north[Red].High()
 		south[Red].High()
-		east[Green].High()
+
+		west[Red].Low()
+		east[Red].Low()
+		west[Yellow].Low()
+		east[Yellow].Low()
+
 		west[Green].High()
+		east[Green].High()
+
 		time.Sleep(5 * time.Second)
 
 		// Transition to North-South green
-		east[Yellow].High()
+		north[Yellow].High()
+		south[Yellow].High()
 		west[Yellow].High()
-		time.Sleep(2 * time.Second)
-		east[Green].Low()
+		east[Yellow].High()
+
 		west[Green].Low()
-		east[Red].High()
-		west[Red].High()
+		east[Green].Low()
+
+		time.Sleep(2 * time.Second)
+		north[Yellow].Low()
+		south[Yellow].Low()
+		west[Yellow].Low()
+		east[Yellow].Low()
 	}
 }
