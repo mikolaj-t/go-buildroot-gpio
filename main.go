@@ -46,7 +46,7 @@ func cleanupGPIO(pins ...int) error {
 }
 
 func main() {
-	err := setupGPIO(NorthGreen, NorthYellow, NorthRed, SouthGreen, SouthYellow, SouthRed, EastGreen, EastYellow, EastRed, WestGreen, WestYellow, WestRed, Button)
+	err := setupGPIO(NorthGreen, NorthYellow, NorthRed, SouthGreen, SouthYellow, SouthRed, EastGreen, EastYellow, EastRed, WestGreen, WestYellow, WestRed)
 	if err != nil {
 		panic(err)
 	}
