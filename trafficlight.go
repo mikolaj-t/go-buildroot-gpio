@@ -41,3 +41,12 @@ func (t *TrafficLight) ChangeState(state State) {
 	}
 	t.state = state
 }
+
+func (t *TrafficLight) ChangeToOpposite(state State) {
+	switch state {
+	case Red:
+		t.ChangeState(Green)
+	case Green:
+		t.ChangeState(Red)
+	}
+}

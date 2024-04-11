@@ -58,15 +58,13 @@ func main() {
 	}
 	defer gpio.Close()
 
-	stopAutomatic := make(chan struct{})
-	stopButton := make(chan struct{})
+	stop := make(chan struct{})
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		stopAutomatic <- struct{}{}
-		stopButton <- struct{}{}
+		stop <- struct{}{}
 	}()
 
 	north := TrafficLight{
@@ -90,11 +88,10 @@ func main() {
 		Red:    gpio.NewPin(WestRed),
 	}
 
-	const (
-		Green  = 0
-		Yellow = 1
-		Red    = 2
-	)
+	north.ChangeState(Green)
+	south.ChangeState(Green)
+	east.ChangeState(Red)
+	west.ChangeState(Red)
 
 	button := gpio.NewPin(Button)
 	button.Input()
@@ -108,69 +105,49 @@ func main() {
 	})
 
 	wg := &sync.WaitGroup{}
-	wg.Add(2)
+	wg.Add(1)
 
+	timer := time.NewTimer(5 * time.Second)
 	go func() {
 		defer wg.Done()
 		for {
 			select {
-			case <-stopButton:
+			case <-stop:
 				return
 			case state := <-stableState:
-				if !state {
-					// Toggle all the lights
-					fmt.Println("Button pressed stable!", state)
-					north.ChangeState(Yellow)
-					south.ChangeState(Yellow)
-					east.ChangeState(Yellow)
-					west.ChangeState(Yellow)
+				if state {
+					continue
 				}
+				timer.Stop()
+				// Toggle all the lights
+				fmt.Println("Button pressed stable!", state)
+				toggleLights(&north, &south, &east, &west)
+				timer.Reset(5 * time.Second)
+			case <-timer.C:
+				toggleLights(&north, &south, &east, &west)
+				timer.Reset(5 * time.Second)
 			}
 
 		}
 	}()
 
-	go func() {
-		defer wg.Done()
-		for {
-			select {
-			case <-stopAutomatic:
-				return
-			default:
-				// North-South green, East-West red
-				north.ChangeState(Green)
-				south.ChangeState(Green)
-				east.ChangeState(Red)
-				west.ChangeState(Red)
-
-				time.Sleep(5 * time.Second)
-
-				// Transition to East-West green
-				north.ChangeState(Yellow)
-				south.ChangeState(Yellow)
-				east.ChangeState(Yellow)
-				west.ChangeState(Yellow)
-
-				time.Sleep(2 * time.Second)
-
-				// North-South red, East-West green
-				north.ChangeState(Red)
-				south.ChangeState(Red)
-				east.ChangeState(Green)
-				west.ChangeState(Green)
-
-				time.Sleep(5 * time.Second)
-
-				// Transition to North-South green
-				north.ChangeState(Yellow)
-				south.ChangeState(Yellow)
-				east.ChangeState(Yellow)
-				west.ChangeState(Yellow)
-
-				time.Sleep(2 * time.Second)
-			}
-		}
-	}()
 	wg.Wait()
 	fmt.Println("Goodbye!")
+}
+
+func toggleLights(north, south, east, west *TrafficLight) {
+	northSouthState := north.state
+	eastWestState := west.state
+
+	north.ChangeState(Yellow)
+	south.ChangeState(Yellow)
+	east.ChangeState(Yellow)
+	west.ChangeState(Yellow)
+
+	time.Sleep(2 * time.Second)
+
+	north.ChangeToOpposite(northSouthState)
+	south.ChangeToOpposite(northSouthState)
+	east.ChangeToOpposite(eastWestState)
+	west.ChangeToOpposite(eastWestState)
 }
