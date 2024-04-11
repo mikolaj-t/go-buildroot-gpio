@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -57,11 +58,14 @@ func main() {
 	}
 	defer gpio.Close()
 
+	stop := make(chan struct{})
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		os.Exit(0)
+		//os.Exit(0)
+		stop <- struct{}{}
 	}()
 
 	north := [3]*gpio.Pin{
@@ -114,55 +118,71 @@ func main() {
 		west[Red].Toggle()
 	})
 
-	for {
-		// North-South green, East-West red
-		north[Green].High()
-		south[Green].High()
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+	L:
+		for {
+			select {
+			case <-stop:
+				break L
+			default:
+				// North-South green, East-West red
+				north[Yellow].Low()
+				south[Yellow].Low()
+				west[Yellow].Low()
+				east[Yellow].Low()
+				north[Red].Low()
+				south[Red].Low()
 
-		east[Red].High()
-		west[Red].High()
-		time.Sleep(5 * time.Second)
+				north[Green].High()
+				south[Green].High()
 
-		// Transition to East-West green
-		north[Yellow].High()
-		south[Yellow].High()
-		west[Yellow].High()
-		east[Yellow].High()
+				east[Red].High()
+				west[Red].High()
+				time.Sleep(5 * time.Second)
 
-		north[Green].Low()
-		south[Green].Low()
+				// Transition to East-West green
+				north[Yellow].High()
+				south[Yellow].High()
+				west[Yellow].High()
+				east[Yellow].High()
 
-		time.Sleep(2 * time.Second)
+				north[Green].Low()
+				south[Green].Low()
 
-		// North-South red, East-West green
-		north[Yellow].Low()
-		south[Yellow].Low()
-		north[Red].High()
-		south[Red].High()
+				time.Sleep(2 * time.Second)
 
-		west[Red].Low()
-		east[Red].Low()
-		west[Yellow].Low()
-		east[Yellow].Low()
+				// North-South red, East-West green
+				north[Yellow].Low()
+				south[Yellow].Low()
+				north[Red].High()
+				south[Red].High()
 
-		west[Green].High()
-		east[Green].High()
+				west[Red].Low()
+				east[Red].Low()
+				west[Yellow].Low()
+				east[Yellow].Low()
 
-		time.Sleep(5 * time.Second)
+				west[Green].High()
+				east[Green].High()
 
-		// Transition to North-South green
-		north[Yellow].High()
-		south[Yellow].High()
-		west[Yellow].High()
-		east[Yellow].High()
+				time.Sleep(5 * time.Second)
 
-		west[Green].Low()
-		east[Green].Low()
+				// Transition to North-South green
+				north[Yellow].High()
+				south[Yellow].High()
+				west[Yellow].High()
+				east[Yellow].High()
 
-		time.Sleep(2 * time.Second)
-		north[Yellow].Low()
-		south[Yellow].Low()
-		west[Yellow].Low()
-		east[Yellow].Low()
-	}
+				west[Green].Low()
+				east[Green].Low()
+
+				time.Sleep(2 * time.Second)
+			}
+		}
+		wg.Done()
+	}()
+	wg.Wait()
+	fmt.Println("Goodbye!")
 }
