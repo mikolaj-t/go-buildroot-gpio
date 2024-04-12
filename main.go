@@ -99,10 +99,13 @@ func main() {
 	stableState := make(chan bool)
 	unbouncer := NewUnbouncer(stableState, 100*time.Millisecond)
 
-	button.Watch(gpio.EdgeBoth, func(p *gpio.Pin) {
+	err = button.Watch(gpio.EdgeBoth, func(p *gpio.Pin) {
 		fmt.Println("Button pressed!", button.Read())
 		unbouncer.OnClicked(bool(button.Read()))
 	})
+	if err != nil {
+		panic(err)
+	}
 
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -119,7 +122,6 @@ func main() {
 					continue
 				}
 				timer.Stop()
-				// Toggle all the lights
 				fmt.Println("Button pressed stable!", state)
 				toggleLights(&north, &south, &east, &west)
 				timer.Reset(5 * time.Second)
